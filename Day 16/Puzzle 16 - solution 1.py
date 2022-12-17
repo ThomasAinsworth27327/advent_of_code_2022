@@ -28,6 +28,7 @@ for cave in valve_dict.keys():
     for adjacent_caves in valve_dict[cave][1]:
         input_graph[len(input_graph)-1][list(valve_dict).index(adjacent_caves)] = 1
 
+
 """for line in input_graph:
     print(line)"""
 
@@ -111,3 +112,22 @@ print(dist_list)
 print(path_list)
 
 # This code is contributed by Divyanshu Mehta
+
+path_weight = []
+path_length = []
+valve_opened = []
+
+for path in path_list:
+    path_weight.append(0)
+    path_length.append(0)
+    for cave_index in path:
+        cave = list(valve_dict.keys())[cave_index]
+        valve_pressure = valve_dict[cave][0]
+        if valve_pressure == 0 or cave in valve_opened:
+            path_length[-1] += 1
+        else:
+            path_length[-1] += 2
+            path_weight[-1] += valve_pressure
+
+print(path_weight)
+print(path_length)
