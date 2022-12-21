@@ -4,6 +4,7 @@ f = open(inputfile, "r")
 valve_dict = {}
 
 pressure_max = 0
+starting_point = 0
 
 for line in f:
     line_raw = line.strip().split(" ")
@@ -24,9 +25,9 @@ input_graph = []
 for cave in valve_dict.keys():
     input_graph.append([])
     for i in range(len(valve_dict)):
-        input_graph[len(input_graph)-1].append(0)
+        input_graph[-1].append(0)
     for adjacent_caves in valve_dict[cave][1]:
-        input_graph[len(input_graph)-1][list(valve_dict).index(adjacent_caves)] = 1
+        input_graph[-1][list(valve_dict).index(adjacent_caves)] = 1
 
 
 """for line in input_graph:
@@ -107,27 +108,85 @@ class Graph():
 g = Graph(len(valve_dict))
 g.graph = input_graph
 
-dist_list, path_list = g.dijkstra(0,None)
-print(dist_list)
-print(path_list)
+def pathing_function(start_node, valve_opened, steps, max_steps, valve_dict):
+    start_index = list(valve_dict.keys()).index(start_node)
+    dist_list, path_list_index = g.dijkstra(start_index,None)
+    
+    #print(dist_list)
+    #print(path_list_index)
 
-# This code is contributed by Divyanshu Mehta
+    # This code is contributed by Divyanshu Mehta
 
-path_weight = []
-path_length = []
-valve_opened = []
+    path_weight = []
+    path_pressure = []
+    path_length = []
+    path_length_list = []
+    path_weighted_length = []
+    path_list = []
 
-for path in path_list:
-    path_weight.append(0)
-    path_length.append(0)
-    for cave_index in path:
-        cave = list(valve_dict.keys())[cave_index]
-        valve_pressure = valve_dict[cave][0]
-        if valve_pressure == 0 or cave in valve_opened:
-            path_length[-1] += 1
+    for path in path_list_index:
+        path_list.append([])
+        path_weight.append(0)
+        path_pressure.append(0)
+        path_length.append(0)
+        path_length_list.append([])
+        for cave_index in path:
+            cave = list(valve_dict.keys())[cave_index]
+            path_list[-1].append(cave)
+        for cave_index in path[1:]:
+            cave = list(valve_dict.keys())[cave_index]
+            valve_pressure = valve_dict[cave][0]
+            #print(valve_pressure)
+            if valve_pressure == 0 or cave in valve_opened:
+                path_length[-1] += 1
+                path_weight[-1] += 1 * path_pressure[-1]
+                path_length_list[-1].append(1)
+            else:
+                path_length[-1] += 2
+                path_length_list[-1].append(2)
+                path_weight[-1] += 2 * path_pressure[-1]
+                path_pressure[-1] += valve_pressure
+        path_weight[-1] += path_pressure[-1]
+        if (steps + path_length[-1] <= max_steps and (path_length[-1] != 0)):
+            path_weighted_length.append(path_pressure[-1]/path_length[-1])
         else:
-            path_length[-1] += 2
-            path_weight[-1] += valve_pressure
+            path_weighted_length.append(0)
 
-print(path_weight)
-print(path_length)
+
+    print(path_list)
+    print(path_length)
+    print(path_weight)
+    print(path_weighted_length)
+
+    max_weighted_length = max(path_weighted_length)
+    path_to_take = path_weighted_length.index(max_weighted_length)
+    return path_length[path_to_take], path_list[path_to_take], path_length_list[path_to_take]
+
+
+valve_opened = []
+node = "AA"
+steps = 0
+max_steps = 30
+pressure_release_total = 0
+pressure_release_culmulative = 0
+
+while(steps < max_steps):
+    #print(steps)
+    steps_forward, path_list, steps_list = pathing_function(node, valve_opened, steps, max_steps, valve_dict)
+    #print(path_list)
+    #print(steps_list)
+    if ((steps + steps_forward <= max_steps) and (steps_forward != 0)):
+        for ind, valve in enumerate(path_list[1:]):
+            pressure_release_culmulative += pressure_release_total * steps_list[ind]
+            #print(pressure_release_culmulative)
+            if (valve not in valve_opened and valve_dict[valve][0] != 0):
+                pressure_release_total += valve_dict[valve][0]
+                valve_opened.append(valve)
+        node = path_list[-1]
+    else:
+        #print(steps)
+        break
+
+print(valve_opened)
+print(pressure_release_total)
+print(pressure_release_culmulative)
