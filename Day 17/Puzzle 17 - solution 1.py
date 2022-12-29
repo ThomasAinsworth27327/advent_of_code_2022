@@ -1,4 +1,5 @@
 from copy import deepcopy
+import time
 inputfile = "Puzzle 17 - input 1.txt"
 f = open(inputfile, "r")
 
@@ -49,6 +50,9 @@ class chm:
                     max = ind
                     if (not find_min):
                         break
+            elif ("#" in self.map[ind] and ind > max):
+                if (ind > max):
+                    max = ind
         return min, max
     
     def move_rock(self,jet_index):
@@ -59,7 +63,7 @@ class chm:
             direction = -1
         min,max = self.falling_range("@", True)
         move = True
-        new_position = deepcopy(self.map)
+        new_position = deepcopy(self.map[min:max+1])
         for ind in range(min,max+1):
             for index in range(len(self.map[ind])):
                 space = str(self.map[ind][index])
@@ -67,33 +71,34 @@ class chm:
                     adjacent_space = self.map[ind][index+direction]
                     previous_space = self.map[ind][index-direction]
                     if (adjacent_space != "#" and adjacent_space != "|"):
-                        new_position[ind][index+direction] = "@"
+                        new_position[ind-min][index+direction] = "@"
                         if (previous_space != "@"):
-                            new_position[ind][index] = "."
+                            new_position[ind-min][index] = "."
                     else:
                         move = False
                         break
         if (move):
-            self.map = deepcopy(new_position)
+            self.map[min:] = deepcopy(new_position)
+        #print(self)
     
     def gravity(self):
         min,max = self.falling_range("@", True)
         move = True
-        new_position = deepcopy(self.map)
+        new_position = deepcopy(self.map[min-1:max+1])
         for ind in range(min,max+1):
             for index in range(len(self.map[ind])):
                 space = self.map[ind][index]
                 if space == "@":
                     below_space = self.map[ind-1][index]
                     if (below_space != "#" and below_space != "-"):
-                        new_position[ind-1][index] = "@"
-                        new_position[ind][index] = "."
+                        new_position[ind-min][index] = "@"
+                        new_position[ind-min+1][index] = "."
                     else:
                         move = False
                         break
-        #print(new_position)
         if (move):
-            self.map = deepcopy(new_position)
+            self.map[min-1:] = deepcopy(new_position)
+        #print(self)
         return move
     
     def reset(self):
@@ -125,6 +130,7 @@ class chm:
 
             self.add_rock(rock % rock_variations)
 
+            
             while move:
                 self.move_rock(jet_index)
                 move = self.gravity()
