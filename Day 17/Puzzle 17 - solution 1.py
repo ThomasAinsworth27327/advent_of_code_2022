@@ -1,66 +1,147 @@
-inputfile = "Puzzle 15 - input 1.txt"
+from copy import deepcopy
+inputfile = "Puzzle 17 - input 1.txt"
 f = open(inputfile, "r")
 
-rock_graph = [["."]*500]
-#print(f"{len(rock_graph)}, {len(rock_graph[0])}")
-x = 0
-y = 0
-sand_source = [500,0]
-sensor_list = []
-beacon_distance = []
-beacon_list = []
-x_range = [0,0]
-for line_raw in f:
-    line_short = line_raw.replace(",","")
-    line_short = line_short.replace(":","")
-    line = line_short.strip().split(" ")
-    sx,sy = [0,0]
-    sensor = True
-    bx,by = [0,0]
-    for element in line:
-        if (sensor):
-            if ("x=" in element):
-                sx = int(element[2:])
-            if ("y=" in element):
-                sy = int(element[2:])
-                sensor = False
+class chm:
+    def __init__(self):
+        self.map = [["+"] + ["-"]*7 + ["+"]]
+        for _ in range(3):
+            self.map.append(["|"] + ["."]*7 + ["|"])
+        self.rock = [[["|",".",".","@","@","@","@",".","|"]],
+                    [["|",".",".",".","@",".",".",".","|"],["|",".",".","@","@","@",".",".","|"],["|",".",".",".","@",".",".",".","|"]],
+                    [["|",".",".","@","@","@",".",".","|"],["|",".",".",".",".","@",".",".","|"],["|",".",".",".",".","@",".",".","|"]],
+                    [["|",".",".","@",".",".",".",".","|"],["|",".",".","@",".",".",".",".","|"],["|",".",".","@",".",".",".",".","|"],["|",".",".","@",".",".",".",".","|"]],
+                    [["|",".",".","@","@",".",".",".","|"],["|",".",".","@","@",".",".",".","|"]]]
+        self.jet_list = []
+        #print(self)
+    
+    def __repr__(self) -> str:
+        string = ""
+        for index in range(len(self.map)-1,-1,-1):
+            for element in self.map[index]:
+                string += element
+            string += "\n"
+        return string
+    
+    def input_jets(self,file):
+        for line_raw in file:
+            line = line_raw.strip()
+            for character in line:
+                self.jet_list.append(character)
+        #print(len(self.jet_list))
+    
+    def add_rock(self,rock_num):
+        rock_sel = self.rock[rock_num]
+        for line in rock_sel:
+            self.map.append(line)
+    
+    def falling_range(self,character,find_min = True):
+        if (find_min):
+            min = len(self.map)
         else:
-            if ("x=" in element):
-                bx = int(element[2:])
-            if ("y=" in element):
-                by = int(element[2:])
-                sensor = False
-    sensor_list.append([sx,sy])
-    beacon_distance.append(abs(bx-sx)+abs(by-sy))
-    if ([bx,by] not in beacon_list):
-        beacon_list.append([bx,by])
-    if (sx - (abs(bx-sx)+abs(by-sy)) < x_range[0]):
-        x_range[0] = sx - (abs(bx-sx)+abs(by-sy))
-    if (bx - (abs(bx-sx)+abs(by-sy)) < x_range[0]):
-        x_range[0] = bx - (abs(bx-sx)+abs(by-sy))
-    if (sx + (abs(bx-sx)+abs(by-sy)) > x_range[1]):
-        x_range[1] = sx + (abs(bx-sx)+abs(by-sy))
-    if (bx + (abs(bx-sx)+abs(by-sy)) > x_range[1]):
-        x_range[1] = bx + (abs(bx-sx)+abs(by-sy))
+            min = 1
+        max = 0
+        for ind in range(len(self.map)-1,-1,-1):
+            if (character in self.map[ind]):
+                if (ind < min):
+                    min = ind
+                if (ind > max):
+                    max = ind
+                    if (not find_min):
+                        break
+        return min, max
+    
+    def move_rock(self,jet_index):
+        #print(jet_index)
+        if (self.jet_list[jet_index] == ">"):
+            direction = 1
+        else:
+            direction = -1
+        min,max = self.falling_range("@", True)
+        move = True
+        new_position = deepcopy(self.map)
+        for ind in range(min,max+1):
+            for index in range(len(self.map[ind])):
+                space = str(self.map[ind][index])
+                if space == "@":
+                    adjacent_space = self.map[ind][index+direction]
+                    previous_space = self.map[ind][index-direction]
+                    if (adjacent_space != "#" and adjacent_space != "|"):
+                        new_position[ind][index+direction] = "@"
+                        if (previous_space != "@"):
+                            new_position[ind][index] = "."
+                    else:
+                        move = False
+                        break
+        if (move):
+            self.map = deepcopy(new_position)
+    
+    def gravity(self):
+        min,max = self.falling_range("@", True)
+        move = True
+        new_position = deepcopy(self.map)
+        for ind in range(min,max+1):
+            for index in range(len(self.map[ind])):
+                space = self.map[ind][index]
+                if space == "@":
+                    below_space = self.map[ind-1][index]
+                    if (below_space != "#" and below_space != "-"):
+                        new_position[ind-1][index] = "@"
+                        new_position[ind][index] = "."
+                    else:
+                        move = False
+                        break
+        #print(new_position)
+        if (move):
+            self.map = deepcopy(new_position)
+        return move
+    
+    def reset(self):
+        min,max = self.falling_range("@", True)
+        for ind in range(min,max+1):
+            for index in range(len(self.map[ind])):
+                space = self.map[ind][index]
+                if space == "@":
+                    self.map[ind][index] = "#"
+        min,max = self.falling_range("#", False)
+        #print(f"{max}, {max+4}, {len(self.map)}")
+        if (max + 3 + 1 < len(self.map)):
+            l = len(self.map)
+            for _ in range(max + 3 + 1, l):
+                self.map.pop(-1)
+        elif (max + 3 + 1 > len(self.map)):
+            l = len(self.map)
+            for _ in range(l, max + 3 + 1):
+                self.map.append(["|"] + ["."]*7 + ["|"])
+        #print(self)
+    
+    def start(self, num_rocks):
+        rock_variations = 5
+        jet_index = 0
+        for rock in range(num_rocks):
+            if (rock%75 == 0):
+                print(rock)
+            move = True
 
-print(sensor_list)
-print(beacon_distance)
-print(beacon_list)
-print(x_range)
+            self.add_rock(rock % rock_variations)
 
-line_check = 2000000
-no_beacon = 0
+            while move:
+                self.move_rock(jet_index)
+                move = self.gravity()
+                jet_index += 1
+                jet_index = jet_index % len(self.jet_list)
+                if move is False:
+                    self.reset()
+        min,max = self.falling_range("#", False)
+        return max - min + 1
 
-for x in range(x_range[0],x_range[1] + 1):
-    if ([x,line_check] in beacon_list):
-        pass
-    else:
-        for index,sensor in enumerate(sensor_list):
-            if (abs(sensor[0] - x) + abs(sensor[1] - line_check) <= beacon_distance[index]):
-                #print(f"{x}, {sensor}, {beacon_distance[index]}")
-                no_beacon += 1
-                #if (no_beacon % 10000 == 0):
-                    #print(f"{no_beacon}, {x}, {sensor}, {beacon_distance[index]}")
-                break
 
-print(no_beacon)
+
+
+chamber = chm()
+
+chamber.input_jets(f)
+
+print(chamber.start(2022))
+
+#print(chamber)
